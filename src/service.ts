@@ -136,17 +136,25 @@ export class Service {
     };
     const result = await service.compile(input);
 
-    if (!result.success) {
-      throw new Error(result.console);
-    }
-
     const outputFiles: any = {};
     for (const [ name, item ] of Object.entries(result.items)) {
       const { content } = item;
       if (content) {
         outputFiles[name] = content;
+      } 
+
+      const log = item.console;
+      if (log) {
+        console.log(log);
       }
     }
+
+    console.log(result.console);
+
+    if (!result.success) {
+      throw new Error(result.console);
+    }
+
     return outputFiles;
   }
 

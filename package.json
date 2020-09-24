@@ -4,7 +4,7 @@
   "description": "Set of utils (for gulp, node, etc) to support WebAssembly Studio",
   "main": "index.js",
   "scripts": {
-    "build": "tsc -d --sourceMap --outDir ./dist --target ES2016 --module commonjs --lib esnext src/*",
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

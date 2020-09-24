@@ -1,6 +1,6 @@
 {
   "name": "wasm-studio-utils",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Set of utils (for gulp, node, etc) to support WebAssembly Studio",
   "main": "index.js",
   "scripts": {

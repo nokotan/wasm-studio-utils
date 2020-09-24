@@ -22,6 +22,9 @@
 export default async function getConfig() {
     return {
         "serviceUrl": "https://wasmexplorer-service.herokuapp.com/service.php",
-        "rustc": "https://rust-heroku.herokuapp.com/rustc"
+        "clang": "https://webassembly-studio-clang.herokuapp.com/build",
+        "cargo": "https://webassembly-studio-rust.herokuapp.com/cargo",
+        "rustc": "https://rust-heroku.herokuapp.com/rustc",
+        "emscripten": "https://emscripten-compiler.herokuapp.com/build"
     };
 }

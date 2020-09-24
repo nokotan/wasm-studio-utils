@@ -24,6 +24,7 @@ import { decodeRestrictedBase64ToBytes } from "./util";
 import getConfig from "./config";
 import { isZlibData, decompressZlib } from "./zlib";
 import fetch, { Headers } from "node-fetch";
+import { createCompilerService, Language } from "./compilerServices";
 
 declare var global: any;
 
@@ -63,20 +64,6 @@ declare var wabt: {
   readWasm: Function;
   parseWat: Function;
 };
-
-export enum Language {
-  C = "c",
-  Cpp = "cpp",
-  Wat = "wat",
-  Wasm = "wasm",
-  Rust = "rust",
-  Cretonne = "cton",
-  x86 = "x86",
-  Json = "json",
-  JavaScript = "javascript",
-  TypeScript = "typescript",
-  Text = "text"
-}
 
 interface IFile {
   name: string;
@@ -131,40 +118,55 @@ export class Service {
   }
 
   static async compileFile(file: File, from: Language, to: Language, options = ""): Promise<any> {
-    const result = await Service.compile(file.getData(), from, to, options);
-    if (!result.success) {
-      throw new Error((result as any).message);
-    }
-    let data = decodeRestrictedBase64ToBytes(result.output);
-    if (isZlibData(data)) {
-      data = await decompressZlib(data);
-    }
-    return data;
+    const result = await Service.compileFileWithBindings(file, from, to, options);
+    return result.wasm;
   }
 
-  static async compile(src: string | ArrayBuffer, from: Language, to: Language, options = ""): Promise<IServiceRequest> {
-    if ((from === Language.C || from === Language.Cpp) && to === Language.Wasm) {
-      const project = {
-        output: "wasm",
-        compress: true,
-        files: [
-          {
-            type: from,
-            name: "file." + from,
-            options,
-            src
-          }
-        ]
-      };
-      const input = encodeURIComponent(JSON.stringify(project)).replace("%20", "+");
-      return this.sendRequest("input=" + input + "&action=build", ServiceTypes.Service);
-    } else if (from === Language.Wasm && to === Language.x86) {
-      const input = encodeURIComponent(base64js.fromByteArray(src as ArrayBuffer));
-      return this.sendRequest("input=" + input + "&action=wasm2assembly&options=" + encodeURIComponent(options), ServiceTypes.Service);
-    } else if (from === Language.Rust && to === Language.Wasm) {
-      // TODO: Temporary until we integrate rustc into the service.
-      return this.sendRequestJSON({ code: src }, ServiceTypes.Rustc);
+  static async compileFiles(files: File[], from: Language, to: Language, options = ""): Promise<{ [name: string]: (string|ArrayBuffer); }> {
+    const service = await createCompilerService(from, to);
+
+    const input = {
+      files: files.reduce((acc: any, f: File) => {
+        acc[f.getPath()] = {
+          content: f.getData(),
+        };
+        return acc;
+      }, {} as any),
+      options,
+    };
+    const result = await service.compile(input);
+
+    if (!result.success) {
+      throw new Error(result.console);
     }
+
+    const outputFiles: any = {};
+    for (const [ name, item ] of Object.entries(result.items)) {
+      const { content } = item;
+      if (content) {
+        outputFiles[name] = content;
+      }
+    }
+    return outputFiles;
+  }
+
+  static async compileFileWithBindings(file: File, from: Language, to: Language, options = ""): Promise<any> {
+    if (to !== Language.Wasm) {
+      throw new Error(`Only wasm target is supported, but "${to}" was found`);
+    }
+    const result = await Service.compileFiles([file], from, to, options);
+    const expectedOutputFilename = "a.wasm";
+    let output: any = {
+      wasm: result[expectedOutputFilename],
+    };
+    const expectedWasmBindgenJsFilename = "wasm_bindgen.js";
+    if (result[expectedWasmBindgenJsFilename]) {
+      output = {
+        ...output,
+        wasmBindgenJs: result[expectedWasmBindgenJsFilename],
+      };
+    }
+    return output;
   }
 
   static async disassembleWasm(buffer: ArrayBuffer): Promise<string> {

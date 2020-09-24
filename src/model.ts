@@ -33,6 +33,19 @@
     }
     getData(): string | ArrayBuffer { return this.onGetData(); }
     setData(data: string | ArrayBuffer) { this.onSetData(data); }
+    /**
+     * Gets the path up to the base, if specified.
+     */
+    getPath(base: Directory = null): string {
+        const path = [];
+        let parent = this.parent;
+        while (parent && parent !== base) {
+        path.unshift(parent.name);
+        parent = parent.parent;
+        }
+        path.push(this.name);
+        return path.join("/");
+    }
 }
 
 export class Directory extends File {

@@ -85,7 +85,7 @@ export function newFile(path: string, type: FileType, isTransient: boolean = fal
     file.parent = current.dir;
     writeFileSync(ospath, "");
     file.onGetData = () => stringOrBuffer(readFileSync(ospath), type);
-    file.onSetData = (data: string | ArrayBuffer) => writeFileSync(ospath, data);
+    file.onSetData = (data: string | ArrayBuffer) => writeFileSync(ospath, typeof data == "string" ? data : new Uint8Array(data));
     return file;
 }
 
@@ -123,6 +123,6 @@ export function getFile(path: string): File {
     const file = new File(filename, type);
     file.parent = current.dir;
     file.onGetData = () => stringOrBuffer(readFileSync(ospath), type);
-    file.onSetData = (data: string | ArrayBuffer) => writeFileSync(ospath, data);
+    file.onSetData = (data: string | ArrayBuffer) => writeFileSync(ospath, typeof data == "string" ? data : new Uint8Array(data));
     return file;
 }
